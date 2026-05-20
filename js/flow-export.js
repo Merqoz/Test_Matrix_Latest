@@ -540,11 +540,11 @@ const FlowExport = {
             pdf.setLineWidth(0.3);
             pdf.line(m, 22, pageW - m, 22);
 
-            var colWidths = [100, 30, 80, 40, 55, 55, 30];
+            var colWidths = [85, 40, 28, 70, 38, 50, 50, 28];
             var tableX = m;
             var rowH = 9;
             var headerY = 28;
-            var headers = ['Activity', 'Type', 'Location', 'Work Pack', 'Start', 'End', 'Days'];
+            var headers = ['Activity', 'Doc Nr.', 'Type', 'Location', 'Work Pack', 'Start', 'End', 'Days'];
             var totalW = colWidths.reduce(function(a,b){return a+b;},0);
 
             drawTableHeader(tableX, headerY, colWidths, headers, rowH);
@@ -633,12 +633,12 @@ const FlowExport = {
                     if (!entry.isSub) totalDaysMain += dayCount;
                 }
 
-                var cells = [actName, n.type || '', pdfSafe(n.location || ''), pdfSafe(n.workpack || ''), n.startDate || '', n.endDate || '', daysStr];
+                var cells = [actName, pdfSafe(n.subtitle || ''), n.type || '', pdfSafe(n.location || ''), pdfSafe(n.workpack || ''), n.startDate || '', n.endDate || '', daysStr];
                 pdf.setFont('helvetica', entry.isSub ? 'italic' : 'normal');
                 pdf.setFontSize(entry.isSub ? 8 : 9);
                 var rx = tableX;
                 cells.forEach(function(val, ci) {
-                    if (ci === 1 && typeColors[val]) {
+                    if (ci === 2 && typeColors[val]) {
                         var tc = typeColors[val];
                         pdf.setTextColor(tc[0], tc[1], tc[2]);
                         pdf.setFont('helvetica', 'bold');
@@ -899,7 +899,7 @@ const FlowExport = {
                     options: { bold: true, color: P.tblHdrTxt || 'FFFFFF', fill: { color: P.tblHdrBg }, fontSize: 11, fontFace: 'Calibri' }
                 };
             }
-            var headerRow = [hdr('Activity'), hdr('Type'), hdr('Location'), hdr('Work Pack'), hdr('Start'), hdr('End'), hdr('Days')];
+            var headerRow = [hdr('Activity'), hdr('Doc Nr.'), hdr('Type'), hdr('Location'), hdr('Work Pack'), hdr('Start'), hdr('End'), hdr('Days')];
 
             // Default cell text color for theme
             var cellTxt = isLight ? '1e293b' : 'c8cdd7';
@@ -947,6 +947,7 @@ const FlowExport = {
                 if (dc != null) { pptxTotalDays += dc; if (!entry.isSub) pptxTotalDaysMain += dc; }
                 return [
                     cell(actName),
+                    cell(n.subtitle || ''),
                     cell(n.type, { color: typeColor, bold: true }),
                     cell(n.location),
                     cell(n.workpack),
@@ -960,7 +961,7 @@ const FlowExport = {
 
             s3.addTable([headerRow].concat(dataRows), {
                 x: 0.4, y: 1.1, w: 12.5,
-                colW: [3.3, 1.1, 2.6, 1.4, 1.6, 1.6, 0.9],
+                colW: [2.8, 1.3, 1.0, 2.3, 1.2, 1.5, 1.5, 0.9],
                 border: { pt: 0.5, color: tblBorderClr },
                 rowH: 0.35, autoPage: true, autoPageRepeatHeader: true
             });

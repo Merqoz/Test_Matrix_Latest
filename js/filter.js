@@ -28,6 +28,28 @@ const FilterManager = {
         'SRT':   { bg: 'rgba(236, 72, 153, 0.12)',   border: '#ec4899', text: '#ec4899', headerBg: 'rgba(236, 72, 153, 0.18)',   badge: '#ec4899' }
     },
 
+    /**
+     * Return theme-appropriate background tints for a type-colour highlight.
+     * The default `bg`/`headerBg` use very low opacity tuned for the dark
+     * canvas; over a white (light-theme) background those wash out, so we
+     * derive denser tints from the solid border hex instead.
+     */
+    _tintFor(color) {
+        const isLight = document.body.classList.contains('light-theme');
+        if (!isLight) {
+            return { cellBg: color.bg, headerBg: color.headerBg };
+        }
+        // Build stronger rgba tints from the solid border hex for light mode
+        const hex = (color.border || '#2563eb').replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return {
+            cellBg:   `rgba(${r}, ${g}, ${b}, 0.10)`,
+            headerBg: `rgba(${r}, ${g}, ${b}, 0.20)`
+        };
+    },
+
     init() {
         this.renderFilterBar();
         // Right-click listener for chips
@@ -318,30 +340,40 @@ const FilterManager = {
     },
 
     /**
-     * Apply activity name/doc nr filter to test columns
+     * Apply activity name/doc nr filter to test columns.
+     * Dims the entire column (header + body cells), not just the header,
+     * so the visual highlight follows the column down the table.
      */
     applyActivityFilter() {
         const searchTerm = this.activitySearchValue;
-        const testCols = document.querySelectorAll('th.test-column.test-header');
 
-        testCols.forEach(th => {
-            const testId = parseInt(th.dataset.testId);
-            const test = DataModel.getTest(testId);
-            
-            if (!test) return;
+        // Build a Set of test IDs that match the current search term
+        const matchingIds = new Set();
+        const visibleTests = (typeof DataModel !== 'undefined' && DataModel.getVisibleColumns)
+            ? DataModel.getVisibleColumns()
+            : [];
 
-            // Check if name or subtitle matches search term
-            const nameMatch = test.name.toLowerCase().includes(searchTerm);
+        visibleTests.forEach(test => {
+            const nameMatch = (test.name || '').toLowerCase().includes(searchTerm);
             const subtitleMatch = test.subtitle && test.subtitle.toLowerCase().includes(searchTerm);
-            const matches = !searchTerm || nameMatch || subtitleMatch;
+            if (!searchTerm || nameMatch || subtitleMatch) {
+                matchingIds.add(String(test.id));
+            }
+        });
 
-            // Apply opacity/greying for non-matching columns
-            if (matches) {
-                th.style.opacity = '1';
-                th.style.borderColor = '';
+        // Apply styles to every cell that carries a data-test-id (headers + body)
+        const allCells = document.querySelectorAll('.matrix-table [data-test-id]');
+        allCells.forEach(cell => {
+            const id = cell.dataset.testId;
+            if (!searchTerm || matchingIds.has(id)) {
+                cell.classList.remove('activity-search-dim');
+                // Clear any inline styles left over from earlier (header-only) version
+                cell.style.opacity = '';
+                cell.style.borderColor = '';
             } else {
-                th.style.opacity = '0.35';
-                th.style.borderColor = 'rgba(100, 100, 100, 0.2)';
+                cell.classList.add('activity-search-dim');
+                cell.style.opacity = '';
+                cell.style.borderColor = '';
             }
         });
     },
@@ -453,6 +485,7 @@ const FilterManager = {
         DataModel.getVisibleColumns().forEach((test, index) => {
             const type = test.type;
             const color = this.colors[type] || this.colors['FAT'];
+            const tint = this._tintFor(color);
             const typeMatch = !hasTypeFilters || this.activeFilters.has(type);
             const wpMatch = !hasWpFilters || this.activeWpFilters.has(test.workpack);
             // When column filter is active, also hide columns that share no items
@@ -465,7 +498,7 @@ const FilterManager = {
                 th.style.display = isVisible ? '' : 'none';
                 if (hasAnyFilter && isVisible) {
                     th.style.borderTop = `3px solid ${color.border}`;
-                    th.style.background = color.headerBg;
+                    th.style.background = tint.headerBg;
                 } else {
                     th.style.borderTop = `3px solid ${color.border}`;
                     th.style.background = '';
@@ -486,7 +519,7 @@ const FilterManager = {
                     if (cell) {
                         cell.style.display = isVisible ? '' : 'none';
                         if (hasAnyFilter && isVisible) {
-                            cell.style.background = color.bg;
+                            cell.style.background = tint.cellBg;
                             cell.style.borderLeft = `1px solid ${color.border}40`;
                             cell.style.borderRight = `1px solid ${color.border}40`;
                         } else {

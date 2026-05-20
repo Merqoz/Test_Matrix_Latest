@@ -145,6 +145,10 @@ const FlowEdges = {
         // Arrow at the end
         this.addArrowhead(group, from, to, ports);
 
+        // Directional arrow along the line (mid-path) so the travel
+        // direction stays visible even if the endpoint is hidden by a node.
+        this.addDirectionArrow(group, line);
+
         // Label and/or transfer indicator
         var transferCount = edge.transferItems ? Object.keys(edge.transferItems).length : 0;
         var displayLabel = edge.label || '';
@@ -291,6 +295,41 @@ const FlowEdges = {
         const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
         arrow.setAttribute('points', `${tipX},${tipY} ${p1x},${p1y} ${p2x},${p2y}`);
         arrow.classList.add('edge-arrow');
+        group.appendChild(arrow);
+    },
+
+    /**
+     * Draw a small arrow midway along the edge path pointing in the
+     * direction of travel (from → to). Uses the rendered path's
+     * getPointAtLength so it follows the bezier curve exactly.
+     */
+    addDirectionArrow(group, pathEl) {
+        var total;
+        try { total = pathEl.getTotalLength(); } catch (e) { return; }
+        if (!total || !isFinite(total) || total < 20) return; // too short to bother
+
+        // Place the arrow ~80% along the path so it sits close to the
+        // target node, clearly indicating where the edge goes.
+        var pos = total * 0.8;
+        var pMid  = pathEl.getPointAtLength(pos);
+        // Sample slightly ahead/behind to get the tangent direction
+        var delta = Math.min(6, total * 0.05);
+        var pBack = pathEl.getPointAtLength(Math.max(0, pos - delta));
+        var pFwd  = pathEl.getPointAtLength(Math.min(total, pos + delta));
+        var angle = Math.atan2(pFwd.y - pBack.y, pFwd.x - pBack.x);
+
+        var size = 11;
+        // Tip points forward (direction of travel), base trails behind
+        var tipX = pMid.x + size * 0.6 * Math.cos(angle);
+        var tipY = pMid.y + size * 0.6 * Math.sin(angle);
+        var b1x = pMid.x - size * 0.5 * Math.cos(angle) + size * 0.5 * Math.cos(angle - Math.PI / 2);
+        var b1y = pMid.y - size * 0.5 * Math.sin(angle) + size * 0.5 * Math.sin(angle - Math.PI / 2);
+        var b2x = pMid.x - size * 0.5 * Math.cos(angle) + size * 0.5 * Math.cos(angle + Math.PI / 2);
+        var b2y = pMid.y - size * 0.5 * Math.sin(angle) + size * 0.5 * Math.sin(angle + Math.PI / 2);
+
+        var arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        arrow.setAttribute('points', tipX + ',' + tipY + ' ' + b1x + ',' + b1y + ' ' + b2x + ',' + b2y);
+        arrow.classList.add('edge-direction-arrow');
         group.appendChild(arrow);
     },
 
@@ -668,6 +707,36 @@ const FlowEdges = {
         if (edge) {
             delete edge.fromSide;
             delete edge.toSide;
+            FlowData.save();
+        }
+        this._selectedEdgeId = null;
+        var menu = document.getElementById('contextMenu');
+        if (menu) menu.classList.remove('active');
+        this.render();
+    },
+
+    /**
+     * Reverse the direction of an edge: swap from/to node IDs and any
+     * stored port sides so the arrow points the other way.
+     */
+    reverseEdge(edgeId) {
+        var eid = edgeId || this.activeEdgeId;
+        var edge = FlowData.getEdge(eid);
+        if (edge) {
+            var tmpNode = edge.fromNodeId;
+            edge.fromNodeId = edge.toNodeId;
+            edge.toNodeId = tmpNode;
+
+            // Swap explicit port sides if the user had set them
+            var tmpSide = edge.fromSide;
+            edge.fromSide = edge.toSide;
+            edge.toSide = tmpSide;
+            if (edge.fromSide === undefined) delete edge.fromSide;
+            if (edge.toSide === undefined) delete edge.toSide;
+
+            // Clear cached port ordering — it was keyed to the old direction
+            if (edge.portOrder) delete edge.portOrder;
+
             FlowData.save();
         }
         this._selectedEdgeId = null;

@@ -97,6 +97,7 @@ const Renderer = {
 
         // Create header row
         const tr = document.createElement('tr');
+        tr.className = 'column-header-row';
 
         // Fixed columns
         const freezeClass = DataModel.freezeEnabled ? 'col-freeze' : '';
@@ -149,6 +150,36 @@ const Renderer = {
             </th>
         `;
 
+        // Activity search row — search by name and Doc Nr
+        // (Appended FIRST so it sits above the column headers; col-freeze-1 on
+        //  the input cell makes it stick to the left edge after the delete col
+        //  when horizontal freeze is on, so it doesn't scroll off to the right.)
+        const activitySearchTr = document.createElement('tr');
+        activitySearchTr.className = 'activity-search-row';
+        activitySearchTr.id = 'activitySearchRow';
+
+        const freezeClassA = DataModel.freezeEnabled ? 'col-freeze' : '';
+        activitySearchTr.innerHTML = `
+            <th class="col-delete search-cell ${freezeClassA} col-freeze-0"></th>
+            <th colspan="7" class="col-search-combined ${freezeClassA} ${freezeClassA ? 'col-freeze-1' : ''}">
+                <input class="activity-search-input"
+                       id="activitySearchInput"
+                       type="text"
+                       placeholder="🔍 Search by Activity Name or Doc Nr..."
+                       oninput="FilterManager.onActivitySearch(this)">
+            </th>
+        `;
+
+        // Add empty cells for test columns and add button
+        const searchVisible = DataModel.getVisibleColumns();
+        searchVisible.forEach(() => {
+            activitySearchTr.innerHTML += '<th class="test-column search-cell"></th>';
+        });
+        activitySearchTr.innerHTML += '<th class="add-test-col search-cell"></th>';
+
+        thead.appendChild(activitySearchTr);
+
+        // Main column-header row (Item #, Description, … + test columns)
         thead.appendChild(tr);
 
         // Filter row — column-aligned search inputs
@@ -221,32 +252,6 @@ const Renderer = {
 
         filterTr.innerHTML += `<th class="add-test-col filter-cell"></th>`;
         thead.appendChild(filterTr);
-
-        // Activity search row — search by name and Doc Nr
-        const activitySearchTr = document.createElement('tr');
-        activitySearchTr.className = 'activity-search-row';
-        activitySearchTr.id = 'activitySearchRow';
-        
-        const freezeClassA = DataModel.freezeEnabled ? 'col-freeze' : '';
-        activitySearchTr.innerHTML = `
-            <th class="col-delete search-cell ${freezeClassA} col-freeze-0"></th>
-            <th colspan="7" class="col-search-combined ${freezeClassA}">
-                <input class="activity-search-input" 
-                       id="activitySearchInput"
-                       type="text" 
-                       placeholder="🔍 Search by Activity Name or Doc Nr..." 
-                       oninput="FilterManager.onActivitySearch(this)">
-            </th>
-        `;
-
-        // Add empty cells for test columns and add button
-        const searchVisible = DataModel.getVisibleColumns();
-        searchVisible.forEach(() => {
-            activitySearchTr.innerHTML += '<th class="test-column search-cell"></th>';
-        });
-        activitySearchTr.innerHTML += '<th class="add-test-col search-cell"></th>';
-
-        thead.appendChild(activitySearchTr);
     },
 
     /**
@@ -505,7 +510,7 @@ const Renderer = {
         // Add empty cells for each VISIBLE test column
         visible.forEach((test, index) => {
             const groupClass = boundaries.has(index) ? 'type-group-first' : '';
-            html += `<td class="test-column section-test-cell ${groupClass}"></td>`;
+            html += `<td class="test-column section-test-cell ${groupClass}" data-test-id="${test.id}"></td>`;
         });
 
         // Empty cell for add button column
@@ -547,7 +552,7 @@ const Renderer = {
 
         visible.forEach((test, index) => {
             const groupClass = boundaries.has(index) ? 'type-group-first' : '';
-            html += `<td class="test-column wp-sub-test-cell ${groupClass}"></td>`;
+            html += `<td class="test-column wp-sub-test-cell ${groupClass}" data-test-id="${test.id}"></td>`;
         });
 
         html += `<td class="add-test-col"></td>`;
@@ -623,7 +628,7 @@ const Renderer = {
             const groupClass = boundaries.has(index) ? 'type-group-first' : '';
             const subClass = test.parentId ? 'sub-activity-col' : '';
             html += `
-                <td class="test-column ${groupClass} ${subClass}">
+                <td class="test-column ${groupClass} ${subClass}" data-test-id="${test.id}">
                     <input type="text" class="qty-input" value="${testQty}" placeholder="0" 
                         onchange="SectionManager.updateTestQty('${section.id}', ${rowIndex}, ${test.id}, this.value)">
                 </td>
@@ -660,7 +665,7 @@ const Renderer = {
         const boundaries = this.getGroupBoundaries();
         DataModel.getVisibleColumns().forEach((test, index) => {
             const groupClass = boundaries.has(index) ? 'type-group-first' : '';
-            html += `<td class="test-column add-row-cell ${groupClass}"></td>`;
+            html += `<td class="test-column add-row-cell ${groupClass}" data-test-id="${test.id}"></td>`;
         });
 
         // Empty cell for add button column

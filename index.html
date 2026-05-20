@@ -239,6 +239,16 @@
                         <span class="format-label">JSON Only</span>
                         <span class="format-desc">Re-importable project data</span>
                     </button>
+                    <button class="format-choice-btn" onclick="MatrixReport.exportPDF()">
+                        <span class="format-icon">📄</span>
+                        <span class="format-label">PDF Report</span>
+                        <span class="format-desc">All activity details with TOC</span>
+                    </button>
+                    <button class="format-choice-btn" onclick="MatrixReport.exportPPTX()">
+                        <span class="format-icon">📊</span>
+                        <span class="format-label">PowerPoint Report</span>
+                        <span class="format-desc">All activity details with TOC</span>
+                    </button>
                 </div>
                 <div class="export-path-chooser" id="exportPathChooser">
                     <div class="path-label">Export folder</div>
@@ -467,6 +477,10 @@
     <script src="js/activity-details.js"></script>
     <script src="js/clipboard.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/lib/html2canvas.min.js"></script>
+    <script src="js/lib/jspdf.umd.js"></script>
+    <script src="js/lib/pptxgen.bundle.js"></script>
+    <script src="js/matrix-report.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

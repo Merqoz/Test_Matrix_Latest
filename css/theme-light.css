@@ -155,6 +155,44 @@ body.light-theme { color-scheme: light; }
 .light-theme .add-test-btn { color: #64748b !important; border-color: #cbd5e1 !important; }
 .light-theme .add-test-btn:hover { color: #2563eb !important; border-color: #2563eb !important; }
 
+/* Test columns — base background is dark (rgba(20,20,45,.8)) in styles.css;
+   override for every test-column variant so light mode reads correctly. */
+.light-theme .test-column { background: #fff !important; }
+.light-theme .test-column:hover { background: #f0f7ff !important; }
+.light-theme th.test-column,
+.light-theme th.test-header { background: #f8fafc !important; }
+.light-theme .freeze-mode th.test-column,
+.light-theme .freeze-mode th.test-header { background: #f8fafc !important; }
+/* Header inner text elements */
+.light-theme .test-name { color: #0f172a !important; }
+.light-theme .test-name input { color: #0f172a !important; }
+.light-theme .test-subtitle { color: #64748b !important; }
+.light-theme .test-subtitle input {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+}
+.light-theme .test-subtitle input::placeholder { color: #94a3b8 !important; }
+.light-theme .test-subtitle input:focus {
+    background: #fff !important;
+    border-color: #2563eb !important;
+    color: #0f172a !important;
+}
+/* Test header info block — selects, date inputs, labels (all dark by default) */
+.light-theme .test-info select,
+.light-theme .test-info input[type="date"] {
+    background: #fff !important;
+    border-color: #e2e8f0 !important;
+    color: #334155 !important;
+}
+.light-theme .test-info select:focus,
+.light-theme .test-info input[type="date"]:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+}
+.light-theme .test-info label { color: #64748b !important; }
+.light-theme .test-info option { background: #fff !important; color: #334155 !important; }
+
 /* Modals */
 .light-theme .modal-overlay > div,
 .light-theme .label-modal,
@@ -423,3 +461,67 @@ body.light-theme { color-scheme: light; }
 .light-theme td.sub-activity-col {
     background: rgba(124, 58, 237, 0.02) !important;
 }
+
+/* ── Activity search row + column dim (light theme) ─────────────
+ * Dark theme uses #1a1a35 backgrounds and rgba(20,20,40,…) overlays
+ * for the activity-search row and the dim state. Override them so the
+ * search bar and dimmed columns are readable in light mode too. */
+.light-theme .matrix-table thead tr.activity-search-row th {
+    background: #f1f5f9 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+}
+.light-theme.freeze-mode.freeze-rows-mode thead tr.activity-search-row th.col-freeze {
+    background: #f8fafc !important;
+}
+.light-theme .activity-search-input {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+}
+.light-theme .activity-search-input::placeholder {
+    color: #94a3b8 !important;
+}
+.light-theme .activity-search-input:focus {
+    background: #fff !important;
+    border-color: #2563eb !important;
+    color: #0f172a !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+}
+/* Column-wide dim — show as washed-out grey, not the dark-theme overlay */
+.light-theme .matrix-table .activity-search-dim {
+    opacity: 0.3 !important;
+    border-color: #e2e8f0 !important;
+}
+.light-theme .matrix-table th.activity-search-dim {
+    background: #f1f5f9 !important;
+    color: #94a3b8 !important;
+}
+
+/* ── Frozen header rows (sticky) ───────────────────────────────
+ * styles.css forces dark backgrounds on these with high specificity +
+ * !important when .freeze-rows-mode is active. Mirror that specificity
+ * here so light mode wins. Without these the whole sticky header band
+ * stays dark in light mode. */
+.light-theme .freeze-rows-mode .matrix-table thead tr.activity-search-row th {
+    background: #f1f5f9 !important;
+}
+.light-theme .freeze-rows-mode .matrix-table thead tr.column-header-row th {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%) !important;
+    color: #334155 !important;
+}
+.light-theme .freeze-rows-mode .matrix-table thead tr.filter-header-row th {
+    background: #f1f5f9 !important;
+}
+/* Frozen-corner cells (both freezes on) */
+.light-theme.freeze-mode.freeze-rows-mode thead tr.column-header-row th.col-freeze { background: #f8fafc !important; }
+.light-theme.freeze-mode.freeze-rows-mode thead tr.filter-header-row th.col-freeze { background: #f1f5f9 !important; }
+
+/* The test-header cells specifically — they carry the dark gradient via
+ * .matrix-table th. Force light with high specificity incl. freeze mode. */
+.light-theme .matrix-table th.test-header,
+.light-theme .freeze-rows-mode .matrix-table thead th.test-header,
+.light-theme .freeze-mode th.test-column,
+.light-theme .freeze-mode th.test-header {
+    background: #f8fafc !important;
+}
+.light-theme .matrix-table td.test-column { background: #fff !important; }

@@ -148,19 +148,37 @@ body.gc-page::before {
 .gc-bar .handle-r { right: -2px; border-radius: 0 4px 4px 0; }
 .gc-bar:hover .handle { background: rgba(255,255,255,0.1); }
 
-/* Time indicator */
-.gc-time-indicator {
-    position: absolute; top: 0; bottom: 0; width: 2px;
-    background: var(--gc-accent-cyan); z-index: 5; pointer-events: none;
+/* ══════ Time indicator — one continuous full-height draggable line ══════
+   Overlays BOTH the header strip and the scrollable rows body so it visually
+   spans from the top of the timeline to the bottom of the chart. Lives in
+   .gc-gantt-wrapper (which is position:relative). */
+.gc-time-indicator-full {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--gc-accent-cyan);
+    z-index: 15;                /* above bars & milestones, below modals */
     box-shadow: 0 0 10px var(--gc-accent-cyan), 0 0 20px rgba(0,217,255,0.3);
+    pointer-events: all;
+    cursor: ew-resize;
+    transition: box-shadow 0.12s;
+    /* left is set dynamically by _updateTimeIndicator */
 }
-.gc-time-indicator::after {
-    content: ''; position: absolute; top: -6px; left: -4px;
-    width: 10px; height: 10px; background: var(--gc-accent-cyan); border-radius: 50%;
-    box-shadow: 0 0 8px var(--gc-accent-cyan);
+
+/* Wider invisible hit zone so the 2px line is easy to grab */
+.gc-time-indicator-full::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: -8px; right: -8px;
+    background: transparent;
 }
-.gc-time-indicator-head { z-index: 10; }
-.gc-time-indicator-head::after { display: none; }
+
+.gc-time-indicator-full:hover {
+    box-shadow: 0 0 14px var(--gc-accent-cyan), 0 0 28px rgba(0,217,255,0.45);
+}
+.gc-time-indicator-full.dragging { cursor: grabbing; }
 
 /* ==== MILESTONES ==== */
 .gc-ms-line { position: absolute; top: 0; width: 0; border-left: 1px dashed; opacity: 0.35; z-index: 1; pointer-events: none; }
@@ -473,7 +491,7 @@ body.gc-page::before {
 .leaflet-item-marker { transition: transform 0.3s, z-index 0s; }
 
 /* ══════ GANTT SCROLL — unified single scrollbar ══════ */
-.gc-gantt-wrapper { min-width: 1000px; }
+.gc-gantt-wrapper { min-width: 1000px; position: relative; }
 .gc-gantt-head { display: flex; }
 .gc-gantt-head-left { flex-shrink: 0; width: 220px; padding-right: 12px; border-right: 1px solid var(--gc-border-color); }
 .gc-gantt-head-right { flex: 1; position: relative; overflow: hidden; }

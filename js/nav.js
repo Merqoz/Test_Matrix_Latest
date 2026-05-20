@@ -67,6 +67,14 @@ const Nav = {
         var flowBtn = document.getElementById('lightModeBtn');
         if (flowBtn) flowBtn.classList.toggle('active', isLight);
         if (typeof FlowApp !== 'undefined') FlowApp._lightMode = isLight;
+
+        // Re-apply the matrix type-colour highlight so its inline background
+        // tints (set per-theme by FilterManager._tintFor) recompute for the
+        // theme we just switched to. Without this, tints chosen for the old
+        // theme persist until the next filter change.
+        if (typeof FilterManager !== 'undefined' && FilterManager.apply) {
+            try { FilterManager.apply(); } catch (e) {}
+        }
     },
 
     applyStoredTheme() {

@@ -75,7 +75,6 @@
                         <div class="gc-gantt-head-right">
                             <div class="gc-gantt-timeline" id="gcGanttTimeline"></div>
                             <div class="gc-ms-strip" id="gcMsStrip"></div>
-                            <div class="gc-time-indicator gc-time-indicator-head" id="gcTimeIndicatorHead"></div>
                         </div>
                     </div>
                     <!-- Scrollable body: labels + bars together -->
@@ -83,6 +82,8 @@
                         <div class="gc-gantt-labels" id="gcGanttLabels"></div>
                         <div class="gc-gantt-rows" id="gcGanttRows"></div>
                     </div>
+                    <!-- Full-height draggable time indicator — overlays both head and body so the vertical line is continuous -->
+                    <div class="gc-time-indicator-full" id="gcTimeIndicatorFull" title="Drag to scrub timeline"></div>
                 </div>
             </div>
             <div class="gc-timeline-control">
@@ -109,8 +110,9 @@
                 </div>
                 <div class="gc-page-sizes">
                     <span style="font-size:10px;color:#5c6370;margin-right:6px;">Show:</span>
+                    <button class="gc-ps-btn active" onclick="GCApp.setPageSize('auto')" title="Show all items on one page">Auto</button>
                     <button class="gc-ps-btn" onclick="GCApp.setPageSize(15)">15</button>
-                    <button class="gc-ps-btn active" onclick="GCApp.setPageSize(20)">20</button>
+                    <button class="gc-ps-btn" onclick="GCApp.setPageSize(20)">20</button>
                     <button class="gc-ps-btn" onclick="GCApp.setPageSize(30)">30</button>
                     <button class="gc-ps-btn" onclick="GCApp.setPageSize(50)">50</button>
                     <button class="gc-ps-btn" onclick="GCApp.setPageSize(75)">75</button>

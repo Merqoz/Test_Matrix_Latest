@@ -15,7 +15,7 @@ var GCApp = {
     _rangeStart:null,_rangeEnd:null,_currentTime:0,_isPlaying:false,_playInterval:null,
     _mapMode:'simple',_leafletMap:null,_leafletMarkers:{},_leafletItemMarkers:{},_leafletPaths:[],_leafletInited:false,_animRunning:false,
     _equipSchedules:[],_nextBarId:1,_drag:null,_svgPositions:null,_ctxClickPct:null,
-    _pageSize:20,_pageStart:0,
+    _pageSize:'auto',_pageStart:0,
     _mapDrag:null,
     _activeTypes:{},  // {FAT:true, FIT:true, ...}
     _activeWps:{},    // {WP03:true, WP05:true, ...}
@@ -39,7 +39,7 @@ var GCApp = {
     init:function(){
         StorageManager.init();
         // Load custom locations
-        try{var p=StorageManager.loadPrefs();if(p&&p.customLocations){for(var name in p.customLocations){DataModel.locations[name]=p.customLocations[name];}}if(p&&p.gcHiddenWpRows){this._hiddenWpRows=p.gcHiddenWpRows;}if(p&&p.gcLocked)this._locked=true;if(p&&p.gcViewMode==='summary')this._viewMode='summary';}catch(e){}
+        try{var p=StorageManager.loadPrefs();if(p&&p.customLocations){for(var name in p.customLocations){DataModel.locations[name]=p.customLocations[name];}}if(p&&p.gcHiddenWpRows){this._hiddenWpRows=p.gcHiddenWpRows;}if(p&&p.gcLocked)this._locked=true;if(p&&p.gcViewMode==='summary')this._viewMode='summary';if(p&&Array.isArray(p.expandedSubActivities))DataModel.expandedSubActivities=p.expandedSubActivities.slice();if(p&&p.gcPageSize!==undefined)this._pageSize=p.gcPageSize;}catch(e){}
         this._loadMatrix();this._loadBars();this._buildEquipList();
         // Initialize FlowData for milestone access
         if(typeof FlowData!=='undefined'){
@@ -53,6 +53,13 @@ var GCApp = {
         // Reflect persisted lock + view-mode prefs in the UI
         this._updateLockUI();
         this.setViewMode(this._viewMode);
+        // Sync page-size button highlight to the persisted value
+        var self0=this;
+        document.querySelectorAll('.gc-ps-btn').forEach(function(b){
+            var lbl=(b.textContent||'').trim().toLowerCase();
+            var match = (self0._pageSize==='auto') ? (lbl==='auto') : (parseInt(lbl)===parseInt(self0._pageSize));
+            b.classList.toggle('active', match);
+        });
         if(typeof UndoManager!=='undefined') UndoManager.init();
         var self=this;setTimeout(function(){self._renderMap();self._updateItemList();},50);
         // Cross-tab sync: reload if matrix page updates test activities
@@ -329,11 +336,15 @@ var GCApp = {
 
         var equipRows=all.filter(function(x){return x.type==='row';});
         var totalEquip=equipRows.length;
-        var totalPages=Math.max(1,Math.ceil(totalEquip/this._pageSize));
-        var page=Math.floor(this._pageStart/this._pageSize);
-        if(page>=totalPages){page=totalPages-1;this._pageStart=page*this._pageSize;}
 
-        var startIdx=this._pageStart,endIdx=this._pageStart+this._pageSize,equipCount=0;
+        // 'auto' mode: show every item on a single page (no paging).
+        var effectiveSize = (this._pageSize === 'auto') ? Math.max(1, totalEquip) : this._pageSize;
+
+        var totalPages=Math.max(1,Math.ceil(totalEquip/effectiveSize));
+        var page=Math.floor(this._pageStart/effectiveSize);
+        if(page>=totalPages){page=totalPages-1;this._pageStart=page*effectiveSize;}
+
+        var startIdx=this._pageStart,endIdx=this._pageStart+effectiveSize,equipCount=0;
         var visible=[];
         all.forEach(function(item){
             if(item.type==='section'||item.type==='wpHeader'){visible.push(item);return;}
@@ -346,17 +357,46 @@ var GCApp = {
     toggleWpGroup:function(wpId){this._collapsedWps[wpId]=!this._collapsedWps[wpId];this._renderGantt();this._updatePagination();},
 
     setPageSize:function(n){
-        this._pageSize=n;this._pageStart=0;this._save();this._renderGantt();this._updatePagination();
-        document.querySelectorAll('.gc-ps-btn').forEach(function(b){b.classList.toggle('active',parseInt(b.textContent)===n);});
+        // Accepts a positive integer or the string 'auto' (all items on one page).
+        this._pageSize = (n === 'auto') ? 'auto' : parseInt(n);
+        this._pageStart = 0;
+        try { StorageManager.save({ prefs: { gcPageSize: this._pageSize } }); } catch(e){}
+        this._renderGantt();
+        this._updatePagination();
+        // Update button highlight (match by label to support 'Auto')
+        document.querySelectorAll('.gc-ps-btn').forEach(function(b){
+            var lbl = (b.textContent || '').trim().toLowerCase();
+            var match = (n === 'auto') ? (lbl === 'auto') : (parseInt(lbl) === parseInt(n));
+            b.classList.toggle('active', match);
+        });
     },
 
-    prevPage:function(){this._pageStart=Math.max(0,this._pageStart-this._pageSize);this._renderGantt();this._updatePagination();},
-    nextPage:function(){var info=this._getVisibleItems();if(this._pageStart+this._pageSize<info.totalEquip){this._pageStart+=this._pageSize;this._renderGantt();this._updatePagination();}},
+    prevPage:function(){
+        if(this._pageSize === 'auto') return;  // no paging in auto mode
+        this._pageStart=Math.max(0,this._pageStart-this._pageSize);this._renderGantt();this._updatePagination();
+    },
+    nextPage:function(){
+        if(this._pageSize === 'auto') return;  // no paging in auto mode
+        var info=this._getVisibleItems();if(this._pageStart+this._pageSize<info.totalEquip){this._pageStart+=this._pageSize;this._renderGantt();this._updatePagination();}
+    },
 
     _updatePagination:function(){
         var info=this._getVisibleItems();
-        var lbl=document.getElementById('gcPgLabel');if(lbl)lbl.textContent='Page '+(info.page+1)+' / '+info.totalPages;
-        var pi=document.getElementById('gcPageInfo');if(pi)pi.textContent=info.totalEquip+' items';
+        var lbl=document.getElementById('gcPgLabel');
+        var pi=document.getElementById('gcPageInfo');
+        if(this._pageSize === 'auto'){
+            if(lbl) lbl.textContent = 'All ' + info.totalEquip;
+            if(pi)  pi.textContent  = info.totalEquip + ' items (all shown)';
+        } else {
+            if(lbl) lbl.textContent = 'Page ' + (info.page+1) + ' / ' + info.totalPages;
+            if(pi)  pi.textContent  = info.totalEquip + ' items';
+        }
+        // Disable prev/next buttons when in auto mode
+        var prevBtn=document.querySelector('.gc-pg-btn[onclick*="prevPage"]');
+        var nextBtn=document.querySelector('.gc-pg-btn[onclick*="nextPage"]');
+        var autoMode = (this._pageSize === 'auto');
+        if(prevBtn){ prevBtn.disabled = autoMode || info.page === 0; prevBtn.style.opacity = (prevBtn.disabled ? '0.4' : ''); }
+        if(nextBtn){ nextBtn.disabled = autoMode || info.page >= info.totalPages - 1; nextBtn.style.opacity = (nextBtn.disabled ? '0.4' : ''); }
     },
 
     // ── Render ──────────────────────────────────────────
@@ -424,7 +464,8 @@ var GCApp = {
         if(this._gcTimelineVisible){
             ms.forEach(function(m){var pct=GCApp._dayToPct(m.pd);if(pct<-2||pct>102)return;rh+='<div class="gc-ms-line" style="left:'+pct.toFixed(4)+'%;top:0;bottom:0;border-left-color:'+m.color+';"></div>';});
         }
-        rh+='<div class="gc-time-indicator" id="gcTimeIndicator"></div>';
+        // Note: vertical time-indicator line is now a single full-height overlay
+        // (#gcTimeIndicatorFull) placed in .gc-gantt-wrapper — no per-render insert.
 
         var self=this;
         info.items.forEach(function(item){
@@ -808,6 +849,72 @@ var GCApp = {
         if(si){si.value=this._fmtDate(this._rangeStart);si.addEventListener('change',function(e){self._rangeStart=new Date(e.target.value);self.render();});}
         if(ei){ei.value=this._fmtDate(this._rangeEnd);ei.addEventListener('change',function(e){self._rangeEnd=new Date(e.target.value);self.render();});}
         window.addEventListener('resize',function(){self._updateTimeIndicator();});
+        this._setupTimeIndicatorDrag();
+    },
+
+    /** Make the vertical timeline indicator draggable along its entire length.
+     *  Users can grab anywhere on the full-height line to scrub the current
+     *  time. The slider below remains fully functional as a fallback. */
+    _setupTimeIndicatorDrag:function(){
+        var self=this;
+        var line=document.getElementById('gcTimeIndicatorFull');
+        if(!line)return;
+
+        var dragging=false;
+
+        function scrubToClientX(clientX){
+            var rowsEl=document.getElementById('gcGanttRows');
+            if(!rowsEl)return;
+            var rect=rowsEl.getBoundingClientRect();
+            var rel=(clientX - rect.left) / rect.width;
+            if(rel<0)rel=0; if(rel>1)rel=1;
+            self._currentTime=rel;
+            // Pause playback while scrubbing so the line doesn't fight the user
+            if(self._isPlaying){
+                self._isPlaying=false;
+                if(self._playInterval){clearInterval(self._playInterval);self._playInterval=null;}
+                var icon=document.getElementById('gcPlayIcon');if(icon)icon.setAttribute('d','M8 5v14l11-7z');
+            }
+            self._tick();
+        }
+
+        line.addEventListener('mousedown',function(e){
+            if(e.button!==0)return;
+            e.preventDefault();
+            dragging=true;
+            line.classList.add('dragging');
+            scrubToClientX(e.clientX);
+        });
+
+        document.addEventListener('mousemove',function(e){
+            if(!dragging)return;
+            e.preventDefault();
+            scrubToClientX(e.clientX);
+        });
+
+        document.addEventListener('mouseup',function(){
+            if(!dragging)return;
+            dragging=false;
+            line.classList.remove('dragging');
+        });
+
+        // Also allow click-anywhere on the timeline strip to jump the line there
+        var tl=document.getElementById('gcGanttTimeline');
+        if(tl){
+            tl.addEventListener('mousedown',function(e){
+                // Only direct clicks on the timeline itself, not on milestones
+                if(e.target!==tl)return;
+                if(e.button!==0)return;
+                e.preventDefault();
+                dragging=true;
+                line.classList.add('dragging');
+                scrubToClientX(e.clientX);
+            });
+        }
+
+        // Re-align the line when the user scrolls the body vertically or resizes
+        var body=document.getElementById('gcGanttBody');
+        if(body) body.addEventListener('scroll',function(){ self._updateTimeIndicator(); });
     },
 
     togglePlay:function(){
@@ -820,18 +927,31 @@ var GCApp = {
     _tick:function(){this._updateTimeIndicator();this._updateItemList();if(this._mapMode==='world')this._updateLeafletMarkers();else this._updateMapDots();},
 
     _updateTimeIndicator:function(){
-        var pct=(this._currentTime*100).toFixed(2)+'%';
-        var ind=document.getElementById('gcTimeIndicator');if(ind)ind.style.left=pct;
-        // Header indicator: compute pixel position from body rows width to account for scrollbar
-        var indHead=document.getElementById('gcTimeIndicatorHead');
-        if(indHead){
-            var rowsEl=document.getElementById('gcGanttRows');
-            if(rowsEl){
-                var px=this._currentTime*rowsEl.clientWidth;
-                indHead.style.left=px+'px';
-            } else {
-                indHead.style.left=pct;
-            }
+        // Keep the header's chart area exactly as wide as the body's rows area.
+        // When the body has a vertical scrollbar, the rows column is narrower
+        // than the header strip — without this sync, milestones in the header
+        // and the timeline indicator drift to the right relative to the bars.
+        var body=document.getElementById('gcGanttBody');
+        var head=document.querySelector('.gc-gantt-head');
+        if(body && head){
+            var sbw = body.offsetWidth - body.clientWidth;
+            if(sbw < 0) sbw = 0;
+            head.style.paddingRight = sbw + 'px';
+        }
+
+        // The single full-height indicator sits in .gc-gantt-wrapper, aligned to
+        // .gc-gantt-rows (the bar chart column). We place it using pixel math
+        // against the wrapper, so the line overlays both the header strip and
+        // the scrollable body as one continuous vertical line.
+        var full=document.getElementById('gcTimeIndicatorFull');
+        var wrap=document.querySelector('.gc-gantt-wrapper');
+        var rowsEl=document.getElementById('gcGanttRows');
+        if(full && wrap && rowsEl){
+            var wRect=wrap.getBoundingClientRect();
+            var rRect=rowsEl.getBoundingClientRect();
+            var offsetInWrapper = rRect.left - wRect.left;
+            var px = offsetInWrapper + (this._currentTime * rRect.width);
+            full.style.left = px + 'px';
         }
         var disp=document.getElementById('gcCurrentDate');
         if(disp){var d=new Date(this._rangeStart.getTime()+(this._rangeEnd-this._rangeStart)*this._currentTime);disp.textContent=d.toLocaleDateString('en',{day:'numeric',month:'short',year:'numeric'});}

@@ -404,6 +404,31 @@ body {
     transition: fill 0.2s;
 }
 
+/* Mid-line directional arrow (travel direction) — slightly brighter
+   than the line so it reads clearly, and pointer-events off so it
+   doesn't block edge clicks. */
+.edge-direction-arrow {
+    fill: rgba(0, 212, 255, 0.7);
+    pointer-events: none;
+    transition: fill 0.2s;
+}
+.edge-group:hover .edge-direction-arrow {
+    fill: #ff4757;
+}
+.edge-selected .edge-direction-arrow {
+    fill: #00d4ff !important;
+}
+/* Light mode: plain black arrow */
+.light-theme .edge-direction-arrow {
+    fill: rgba(0, 0, 0, 0.75);
+}
+.light-theme .edge-group:hover .edge-direction-arrow {
+    fill: #ff4757;
+}
+.light-theme .edge-selected .edge-direction-arrow {
+    fill: #2563eb !important;
+}
+
 .edge-group:hover .edge-line {
     stroke: #ff4757;
     stroke-width: 3;
@@ -1578,14 +1603,20 @@ body.edge-mode .flow-node:hover {
     font-family: 'Segoe UI', sans-serif;
     line-height: 1.6;
     min-height: 80px;
-    max-height: 200px;
+    max-height: 260px;
     overflow-y: auto;
     outline: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 212, 255, 0.4) rgba(255, 255, 255, 0.05);
 }
+.wysiwyg-editor::-webkit-scrollbar { width: 8px; }
+.wysiwyg-editor::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+.wysiwyg-editor::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.4); border-radius: 4px; }
+.wysiwyg-editor::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.7); }
 
 .wysiwyg-notes {
     min-height: 120px;
-    max-height: 260px;
+    max-height: 360px;
 }
 
 /* Placeholder for empty editors */

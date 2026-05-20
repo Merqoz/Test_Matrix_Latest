@@ -377,30 +377,42 @@ body {
 }
 /* === ROW FREEZE — only active when .freeze-rows-mode is on === */
 .freeze-rows-mode .matrix-table thead th { position: sticky !important; }
-/* Main header row sticks at top */
-.freeze-rows-mode .matrix-table thead tr:first-child th {
+
+/* Row 1 — Activity search (now first in DOM order) */
+.freeze-rows-mode .matrix-table thead tr.activity-search-row th {
     top: 0;
+    z-index: 12;
+    background: #1a1a35 !important;
+}
+/* Row 2 — Column header (Item #, Description, …) */
+.freeze-rows-mode .matrix-table thead tr.column-header-row th {
+    top: 36px;
     z-index: 11;
     background: linear-gradient(180deg, #1a1a3a 0%, #151530 100%) !important;
 }
-/* Filter row sticks below the main header (override the transparent default) */
+/* Row 3 — Per-column filter inputs */
 .freeze-rows-mode .matrix-table thead tr.filter-header-row th {
-    top: 36px;
-    z-index: 11;
+    top: 72px;
+    z-index: 10;
     background: #151530 !important;
 }
 /* Frozen header cells always on top of everything (when BOTH freezes are on) */
-.freeze-mode.freeze-rows-mode thead tr:first-child th.col-freeze { z-index: 35; }
-.freeze-mode.freeze-rows-mode thead tr.filter-header-row th.col-freeze { z-index: 34; }
+.freeze-mode.freeze-rows-mode thead tr.activity-search-row th.col-freeze { z-index: 36; background: #1a1a35 !important; }
+.freeze-mode.freeze-rows-mode thead tr.column-header-row th.col-freeze   { z-index: 35; }
+.freeze-mode.freeze-rows-mode thead tr.filter-header-row th.col-freeze   { z-index: 34; }
 
-/* Activity Search Row — shows the Doc Nr / Test Activity description input */
-.freeze-rows-mode .matrix-table thead tr.activity-search-row th {
-    top: 72px;
-    z-index: 11;
-    background: #1a1a35 !important;
-}
+/* Activity Search Row — base styling regardless of freeze mode */
 .matrix-table thead tr.activity-search-row th { background: #1a1a35; border-bottom: 2px solid #333; padding: 8px; }
-.freeze-mode.freeze-rows-mode thead tr.activity-search-row th.col-freeze { z-index: 34; background: #1a1a35 !important; }
+
+/* Column-wide dim while the activity search bar has a non-matching term —
+ * applied to the test header AND to every body cell carrying the same test id,
+ * so the highlight follows the whole column down the table. */
+.matrix-table .activity-search-dim {
+    opacity: 0.35;
+    border-color: rgba(100, 100, 100, 0.2) !important;
+    transition: opacity 0.15s ease;
+}
+.matrix-table th.activity-search-dim { background: rgba(20, 20, 40, 0.85) !important; }
 
 .col-search-combined {
     padding: 6px 8px !important;
@@ -2069,14 +2081,20 @@ td.sub-activity-col {
     border-radius: 0 0 6px 6px;
     padding: 8px 10px;
     min-height: 60px;
-    max-height: 150px;
+    max-height: 220px;
     overflow-y: auto;
     color: #ccd;
     font-size: 12px;
     line-height: 1.5;
     outline: none;
     background: rgba(0, 0, 0, 0.2);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 212, 255, 0.4) rgba(255, 255, 255, 0.05);
 }
+.ad-editor::-webkit-scrollbar { width: 8px; }
+.ad-editor::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+.ad-editor::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.4); border-radius: 4px; }
+.ad-editor::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.7); }
 
 .ad-editor:focus {
     border-color: rgba(0, 212, 255, 0.25);
@@ -2084,7 +2102,7 @@ td.sub-activity-col {
 
 .ad-editor-notes {
     min-height: 80px;
-    max-height: 200px;
+    max-height: 320px;
 }
 
 .ad-table {
@@ -3623,3 +3641,41 @@ td.sub-activity-col {
 .sedit-actions .btn-cancel:hover { background:rgba(255,255,255,0.05); }
 .sedit-actions .btn-save { padding:7px 16px; border-radius:6px; background:rgba(0,212,255,0.15); border:1px solid rgba(0,212,255,0.35); color:#00d4ff; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .sedit-actions .btn-save:hover { background:rgba(0,212,255,0.25); }
+
+/* === Export loading overlay (used by MatrixReport — mirrors flow.css) === */
+#exportLoadingOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+}
+.export-loading-box {
+    background: rgba(16, 18, 36, 0.95);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 14px;
+    padding: 32px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.export-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(0, 212, 255, 0.2);
+    border-top-color: #00d4ff;
+    border-radius: 50%;
+    animation: export-spin 0.8s linear infinite;
+}
+@keyframes export-spin { to { transform: rotate(360deg); } }
+.export-loading-text {
+    font-size: 14px;
+    color: #aab;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
